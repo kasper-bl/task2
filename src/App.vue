@@ -1,47 +1,37 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
+    import { reactive } from 'vue';
+    import Board from './components/Board.vue'
+
+    export default{
+        name: 'App',
+        components:{
+            Board,
+        },
+        setup(){
+            const boardState = reactive({
+                colums:[
+                    {id: 'todo', title: 'В работе', maxCards: 3, cards: []},
+                    {id: 'in-progress', title: 'На проверке', maxCards: 5, cards: []},
+                    {id: 'done', title: 'Готово', maxCards: Infinity, cards: []}
+                ],
+                nextId: 1
+            });
+
+            return{
+                boardState,
+            }
+        }
+
+    }
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+    <div id="app">
+        <Board :state="boardState" />
     </div>
-  </header>
 
-  <main>
-    <TheWelcome />
-  </main>
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
-}
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-}
 </style>
