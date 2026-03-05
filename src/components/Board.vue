@@ -26,7 +26,6 @@ export default {
     state: Object,
   },
   setup(props) {
-    // Загружаем состояние из localStorage при старте
     const saved = localStorage.getItem('boardState');
     if (saved) {
       const parsed = JSON.parse(saved);
@@ -36,7 +35,6 @@ export default {
       props.state.nextId = parsed.nextId || 1;
     }
 
-    // Сохраняем в localStorage при каждом изменении
     watchEffect(() => {
       const toSave = {
         columns: props.state.columns.map(col => ({
@@ -48,7 +46,6 @@ export default {
       localStorage.setItem('boardState', JSON.stringify(toSave));
     });
 
-    // Вычисляем, заблокирован ли первый столбец
     const isFirstColumnFull = ref(false);
 
     return {
