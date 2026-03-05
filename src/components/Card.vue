@@ -1,4 +1,3 @@
-<!-- Card.vue -->
 <template>
   <div class="card" :class="{ locked: isLocked }">
     <h3>{{ card.title }}</h3>
@@ -11,13 +10,23 @@
         @update:completed="onTaskCompleted"
       />
     </ul>
+    <!-- Форма для добавления новой задачи -->
+    <form @submit.prevent="addTask" class="add-task-form">
+      <input
+        v-model="newTaskText"
+        type="text"
+        placeholder="Название задачи"
+        required
+      />
+      <button type="submit">Добавить задачу</button>
+    </form>
     <p>Прогресс: {{ progress }}%</p>
     <p v-if="card.completedAt">Завершена: {{ card.completedAt }}</p>
   </div>
 </template>
 
 <script>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import TaskItem from './TaskItem.vue';
 
 export default {
@@ -32,6 +41,8 @@ export default {
   },
   emits: ['progress-changed'],
   setup(props, { emit }) {
+    const newTaskText = ref('');
+
     const progress = computed(() => {
       const total = props.card.tasks.length;
       const done = props.card.tasks.filter(t => t.completed).length;
@@ -42,9 +53,24 @@ export default {
       emit('progress-changed');
     };
 
+    const addTask = () => {
+      if (!newTaskText.value.trim()) return;
+
+      const newTask = {
+        id: Date.now(),
+        text: newTaskText.value.trim(),
+        completed: false,
+      };
+
+      props.card.tasks.push(newTask);
+      newTaskText.value = '';
+    };
+
     return {
       progress,
       onTaskCompleted,
+      addTask,
+      newTaskText,
     };
   },
 };
@@ -66,5 +92,13 @@ export default {
 .task-list {
   list-style-type: none;
   padding-left: 0;
+}
+.add-task-form {
+  display: flex;
+  gap: 5px;
+  margin-top: 5px;
+}
+.add-task-form input {
+  flex: 1;
 }
 </style>

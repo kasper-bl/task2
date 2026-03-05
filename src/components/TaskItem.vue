@@ -1,32 +1,78 @@
 <template>
   <li>
-    <label>
+    <span v-if="!isEditing">{{ task.text }}</span>
+    <input
+      v-else
+      v-model="editText"
+      type="text"
+      @blur="saveEdit"
+      @keyup.enter="saveEdit"
+      ref="inputRef"
+    />
+    <button @click="toggleEdit" style="margin-left: 5px;">{{ isEditing ? 'Сохранить' : 'Редакт.' }}</button>
+    <label style="margin-left: 5px;">
       <input
         type="checkbox"
         :checked="task.completed"
-        :disabled="isLocked"
+        :disabled="isLocked || isEditing"
         @change="toggleTask"
       />
-      {{ task.text }}
+      Выполнено
     </label>
   </li>
 </template>
 
 <script>
+import { ref, nextTick } from 'vue';
+
 export default {
   name: 'TaskItem',
   props: {
     task: Object,
     isLocked: Boolean,
   },
-  methods: {
-    toggleTask(e) {
-      if (!this.isLocked) {
-        const newValue = e.target.checked;
-        this.task.completed = newValue;
-        this.$emit('update:completed', { taskId: this.task.id, completed: newValue });
+  emits: ['update:completed'],
+  setup(props) {
+    const isEditing = ref(false);
+    const editText = ref('');
+    const inputRef = ref(null);
+
+    const toggleEdit = async () => {
+      if (isEditing.value) {
+        saveEdit();
+      } else {
+        editText.value = props.task.text;
+        isEditing.value = true;
+        await nextTick();
+        if (inputRef.value) {
+          inputRef.value.focus();
+        }
       }
-    },
+    };
+
+    const saveEdit = () => {
+      if (editText.value.trim()) {
+        props.task.text = editText.value.trim();
+      }
+      isEditing.value = false;
+    };
+
+    const toggleTask = (e) => {
+      if (!props.isLocked && !isEditing.value) {
+        const newValue = e.target.checked;
+        props.task.completed = newValue;
+        props.$emit('update:completed', { taskId: props.task.id, completed: newValue });
+      }
+    };
+
+    return {
+      isEditing,
+      editText,
+      inputRef,
+      toggleEdit,
+      saveEdit,
+      toggleTask,
+    };
   },
 };
 </script>

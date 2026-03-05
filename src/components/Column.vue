@@ -12,13 +12,26 @@
         @progress-changed="$emit('progress-updated')"
       />
     </div>
-    <button v-if="canAddCard" @click="addCard">Добавить карточку</button>
-    <p v-else-if="column.id === 'todo' && isLockedForTransfer">(Заблокировано)</p>
+    <!-- Форма добавления карточки только в первом столбце -->
+    <form 
+      @submit.prevent="addCard" 
+      v-if="isFirstColumn && canAddCard" 
+      class="add-card-form"
+    >
+      <input
+        v-model="newCardTitle"
+        type="text"
+        placeholder="Название карточки"
+        required
+      />
+      <button type="submit">Добавить карточку</button>
+    </form>
+    <p v-else-if="isFirstColumn && isLockedForTransfer">(Заблокировано)</p>
   </div>
 </template>
 
 <script>
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import Card from './Card.vue';
 
 export default {
@@ -33,6 +46,8 @@ export default {
   },
   emits: ['progress-updated'],
   setup(props) {
+    const newCardTitle = ref('');
+
     const isLockedForTransfer = computed(() => {
       if (props.column.id !== 'todo') return false;
       const inProgressCol = props.state.columns.find(c => c.id === 'in-progress');
@@ -44,11 +59,15 @@ export default {
       return props.column.maxCards - props.column.cards.length;
     });
 
-    const canAddCard = computed(() => remainingSlots.value > 0 && !isLockedForTransfer.value);
+    const canAddCard = computed(() => {
+      return props.column.id === 'todo' && remainingSlots.value > 0 && !isLockedForTransfer.value;
+    });
 
     const isFirstColumn = computed(() => props.column.id === 'todo');
 
     const addCard = () => {
+      if (!newCardTitle.value.trim()) return;
+
       const tasks = Array.from({ length: 3 }, (_, i) => {
         return reactive({
           id: Date.now() + i,
@@ -59,12 +78,13 @@ export default {
 
       const newCard = reactive({
         id: props.state.nextId++,
-        title: `Карточка ${props.state.nextId - 1}`,
+        title: newCardTitle.value.trim(),
         tasks,
         completedAt: null,
       });
 
       props.column.cards.push(newCard);
+      newCardTitle.value = ''; 
     };
 
     return {
@@ -73,6 +93,7 @@ export default {
       canAddCard,
       isFirstColumn,
       addCard,
+      newCardTitle,
     };
   },
 };
@@ -89,5 +110,12 @@ export default {
 .card-list {
   min-height: 50px;
   margin-bottom: 10px;
+}
+.add-card-form {
+  display: flex;
+  gap: 5px;
+}
+.add-card-form input {
+  flex: 1;
 }
 </style>
