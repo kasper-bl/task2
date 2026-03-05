@@ -1,3 +1,4 @@
+<!-- Card.vue -->
 <template>
   <div class="card" :class="{ locked: isLocked }">
     <h3>{{ card.title }}</h3>
@@ -6,7 +7,7 @@
         v-for="task in card.tasks"
         :key="task.id"
         :task="task"
-        :isLocked="isLocked"
+        :is-locked="isLocked"
         @toggle="onTaskToggle"
       />
     </ul>
@@ -28,6 +29,7 @@ export default {
     card: Object,
     state: Object,
     isLocked: Boolean,
+    moveCard: Function,
   },
   emits: ['progress-changed'],
   setup(props, { emit }) {
@@ -37,39 +39,16 @@ export default {
       return total ? Math.round((done / total) * 100) : 0;
     });
 
-    const getCurrentColumnIndex = () => {
-      for (let i = 0; i < props.state.columns.length; i++) {
-        const col = props.state.columns[i];
-        if (col.cards.some(c => c.id === props.card.id)) {
-          return i;
-        }
-      }
-      return -1;
-    };
-
-    const moveCard = (fromIndex, toIndex) => {
-      if (fromIndex === -1 || toIndex === -1) return;
-
-      const fromCol = props.state.columns[fromIndex];
-      const toCol = props.state.columns[toIndex];
-
-      const cardIndex = fromCol.cards.findIndex(c => c.id === props.card.id);
-      if (cardIndex === -1) return;
-
-      const [card] = fromCol.cards.splice(cardIndex, 1);
-      toCol.cards.push(card);
-    };
-
     const onTaskToggle = () => {
+      // Сначала обновляем прогресс
+      const currentProgress = progress.value;
+      
+      // Вызываем событие для обновления состояния блокировки первой колонки
       emit('progress-changed');
 
-      const currentColIndex = getCurrentColumnIndex();
-
-      if (currentColIndex === 0 && progress.value > 50) {
-        moveCard(0, 1); 
-      } else if (currentColIndex === 1 && progress.value === 100) {
-        props.card.completedAt = new Date().toLocaleString();
-        moveCard(1, 2); 
+      // Вызываем функцию перемещения, переданную из Board.vue
+      if (props.moveCard) {
+        props.moveCard(props.card, currentProgress);
       }
     };
 

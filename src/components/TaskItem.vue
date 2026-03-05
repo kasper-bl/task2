@@ -1,3 +1,4 @@
+<!-- TaskItem.vue -->
 <template>
   <li>
     <label>
@@ -28,4 +29,3 @@ export default {
   },
 };
 </script>
-

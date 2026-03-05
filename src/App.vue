@@ -1,3 +1,4 @@
+<!-- App.vue -->
 <template>
   <div id="app">
     <Board :state="boardState" />

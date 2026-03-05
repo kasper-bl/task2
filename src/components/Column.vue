@@ -1,3 +1,4 @@
+<!-- Column.vue -->
 <template>
   <div class="column">
     <h2>{{ column.title }}</h2>
@@ -8,7 +9,8 @@
         :key="card.id"
         :card="card"
         :state="state"
-        :isLocked="isFirstColumn && isLockedForTransfer"
+        :is-locked="isFirstColumn && isLockedForTransfer"
+        :move-card="moveCard"
         @progress-changed="checkLockStatus"
       />
     </div>
@@ -30,6 +32,7 @@ export default {
     column: Object,
     state: Object,
     isFirstColumnFull: Boolean,
+    moveCard: Function,
   },
   emits: ['update:isFirstColumnFull'],
   setup(props, { emit }) {
@@ -46,7 +49,7 @@ export default {
 
     const canAddCard = computed(() => remainingSlots.value > 0 && !isLockedForTransfer.value);
 
-    const isFirstColumn = computed(() => props.column.id === 'todo');
+    const isFirst => props.column.id === 'todo');
 
     const checkLockStatus = () => {
       if (isFirstColumn.value) {
@@ -66,7 +69,7 @@ export default {
       const tasks = Array.from({ length: 3 }, (_, i) => {
         return reactive({
           id: Date.now() + i,
-          text: `За ${i + 1}`,
+          text: `Задача ${i + 1}`,
           completed: false,
         });
       });
