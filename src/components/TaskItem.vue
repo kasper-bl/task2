@@ -1,4 +1,3 @@
-<!-- TaskItem.vue -->
 <template>
   <li>
     <label>
@@ -23,7 +22,9 @@ export default {
   methods: {
     toggleTask(e) {
       if (!this.isLocked) {
-        this.task.completed = e.target.checked;
+        const newValue = e.target.checked;
+        this.task.completed = newValue;
+        this.$emit('update:completed', { taskId: this.task.id, completed: newValue });
       }
     },
   },

@@ -9,7 +9,7 @@
         :column="col"
         :state="state"
         :is-first-column-full="isFirstColumnFull"
-        :move-card="moveCard"
+        @progress-updated="handleProgressUpdate"
       />
     </div>
   </div>
@@ -24,92 +24,105 @@ export default {
   components: {
     Column,
   },
-  props: {
-    state: Object,
-  },
-  setup(props) {
-    // Загрузка данных из localStorage
+  setup() {
+    const state = reactive({
+      columns: [
+        { id: 'todo', title: 'В работе', maxCards: 3, cards: [] },
+        { id: 'in-progress', title: 'На проверке', maxCards: 5, cards: [] },
+        { id: 'done', title: 'Готово', maxCards: Infinity, cards: [] },
+      ],
+      nextId: 1,
+    });
+
     const saved = localStorage.getItem('boardState');
     if (saved) {
       const parsed = JSON.parse(saved);
-      props.state.columns[0].cards = parsed.columns[0].cards || [];
-      props.state.columns[1].cards = parsed.columns[1].cards || [];
-      props.state.columns[2].cards = parsed.columns[2].cards || [];
-      props.state.nextId = parsed.nextId || 1;
+      state.columns[0].cards = parsed.columns[0].cards || [];
+      state.columns[1].cards = parsed.columns[1].cards || [];
+      state.columns[2].cards = parsed.columns[2].cards || [];
+      state.nextId = parsed.nextId || 1;
     }
 
-    // Сохранение данных в localStorage
     watchEffect(() => {
       const toSave = {
-        columns: props.state.columns.map(col => ({
+        columns: state.columns.map(col => ({
           id: col.id,
           cards: col.cards.map(c => ({ ...c })),
         })),
-        nextId: props.state.nextId,
+        nextId: state.nextId,
       };
       localStorage.setItem('boardState', JSON.stringify(toSave));
     });
 
     const isFirstColumnFull = ref(false);
 
-    // Функция перемещения карточки между колонками
-    const moveCard = (card, progressValue) => {
-      // Находим текущую колонку карточки
-      let currentColIndex = -1;
-      let cardIndexInCol = -1;
+    const updateFirstColumnLock = () => {
+      const todo = state.columns.find(c => c.id === 'todo');
+      const inProgress = state.columns.find(c => c.id === 'in-progress');
+      if (!todo || !inProgress) return;
 
-      for (let i = 0; i < props.state.columns.length; i++) {
-        const index = props.state.columns[i].cards.findIndex(c => c.id === card.id);
-        if (index !== -1) {
-          currentColIndex = i;
-          cardIndexInCol = index;
-          break;
-        }
-      }
+      const isSecondFull = inProgress.cards.length >= inProgress.maxCards;
+      const hasProgressOver50 = todo.cards.some(card => {
+        const done = card.tasks.filter(t => t.completed).length;
+        const total = card.tasks.length;
+        return total > 0 && (done / total) * 100 > 50;
+      });
 
-      // Если карточка не найдена, выходим
-      if (currentColIndex === -1 || cardIndexInCol === -1) {
-        console.log("Карточка не найдена в текущих колонках");
-        return;
-      }
-
-      // Получаем текущую колонку
-      const currentColumn = props.state.columns[currentColIndex];
-
-      console.log(`Найдена карточка в колонке ${currentColumn.id}, прогресс: ${progressValue}%`);
-
-      // Условия для перемещения
-      if (currentColIndex === 0 && progressValue > 50) {
-        // Перемещаем из todo в in-progress
-        const cardToMove = currentColumn.cards.splice(cardIndexInCol, 1)[0];
-        const inProgressCol = props.state.columns.find(c => c.id === 'in-progress');
-        if (inProgressCol && inProgressCol.cards.length < inProgressCol.maxCards) {
-          inProgressCol.cards.push(cardToMove);
-          console.log("Карточка перемещена из 'В работе' в 'На проверке'");
-        } else {
-          console.log("Нельзя переместить - колонка 'На проверке' заполнена");
-          // Возвращаем карточку обратно, если перемещение невозможно
-          currentColumn.cards.splice(cardIndexInCol, 0, cardToMove);
-        }
-      } 
-      else if (currentColIndex === 1 && progressValue === 100) {
-        // Перемещаем из in-progress в done
-        const cardToMove = currentColumn.cards.splice(cardIndexInCol, 1)[0];
-        cardToMove.completedAt = new Date().toLocaleString();
-        const doneCol = props.state.columns.find(c => c.id === 'done');
-        if (doneCol) {
-          doneCol.cards.push(cardToMove);
-          console.log("Карточка перемещена из 'На проверке' в 'Готово'");
-        } else {
-          // Возвращаем карточку обратно, если перемещение невозможно
-          currentColumn.cards.splice(cardIndexInCol, 0, cardToMove);
-        }
-      }
+      isFirstColumnFull.value = isSecondFull && hasProgressOver50;
     };
 
+    const moveCardsAutomatically = () => {
+      const allCards = [];
+      for (const col of state.columns) {
+        for (const card of col.cards) {
+          allCards.push({ card, fromColumn: col.id });
+        }
+      }
+
+      for (const { card, fromColumn } of allCards) {
+        const total = card.tasks.length;
+        const done = card.tasks.filter(t => t.completed).length;
+        const progress = total ? Math.round((done / total) * 100) : 0;
+
+        const sourceCol = state.columns.find(c => c.id === fromColumn);
+        if (!sourceCol) continue;
+        
+        const idx = sourceCol.cards.indexOf(card);
+        if (idx === -1) continue;
+
+        if (fromColumn === 'todo' && progress > 50) {
+          const targetCol = state.columns.find(c => c.id === 'in-progress');
+          if (targetCol && targetCol.cards.length < targetCol.maxCards) {
+            sourceCol.cards.splice(idx, 1);
+            targetCol.cards.push(card);
+          }
+        } else if (fromColumn === 'in-progress' && progress === 100) {
+          const targetCol = state.columns.find(c => c.id === 'done');
+          if (targetCol) {
+            sourceCol.cards.splice(idx, 1);
+            card.completedAt = new Date().toLocaleString();
+           (card);
+          }
+        }
+      }
+
+      updateFirstColumnLock();
+    };
+
+    watchEffect(() => {
+      state.columns.forEach(col =>
+        col.cards.forEach(card =>
+          card.tasks.forEach(() => {})
+        )
+      );
+      moveCardsAutomatically();
+    });
+
+    setTimeout(moveCardsAutomatically, 0);
+
     return {
+      state,
       isFirstColumnFull,
-      moveCard,
     };
   },
 };

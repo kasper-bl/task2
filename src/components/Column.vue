@@ -1,4 +1,3 @@
-<!-- Column.vue -->
 <template>
   <div class="column">
     <h2>{{ column.title }}</h2>
@@ -10,8 +9,7 @@
         :card="card"
         :state="state"
         :is-locked="isFirstColumn && isLockedForTransfer"
-        :move-card="moveCard"
-        @progress-changed="checkLockStatus"
+        @progress-changed="$emit('progress-updated')"
       />
     </div>
     <button v-if="canAddCard" @click="addCard">Добавить карточку</button>
@@ -20,7 +18,7 @@
 </template>
 
 <script>
-import { ref, computed, reactive } from 'vue';
+import { computed, reactive } from 'vue';
 import Card from './Card.vue';
 
 export default {
@@ -32,14 +30,13 @@ export default {
     column: Object,
     state: Object,
     isFirstColumnFull: Boolean,
-    moveCard: Function,
   },
-  emits: ['update:isFirstColumnFull'],
-  setup(props, { emit }) {
+  emits: ['progress-updated'],
+  setup(props) {
     const isLockedForTransfer = computed(() => {
       if (props.column.id !== 'todo') return false;
       const inProgressCol = props.state.columns.find(c => c.id === 'in-progress');
-      return inProgressCol.cards.length >= inProgressCol.maxCards && props.isFirstColumnFull;
+      return inProgressCol && inProgressCol.cards.length >= inProgressCol.maxCards && props.isFirstColumnFull;
     });
 
     const remainingSlots = computed(() => {
@@ -49,21 +46,7 @@ export default {
 
     const canAddCard = computed(() => remainingSlots.value > 0 && !isLockedForTransfer.value);
 
-    const isFirst => props.column.id === 'todo');
-
-    const checkLockStatus = () => {
-      if (isFirstColumn.value) {
-        let shouldLock = false;
-        for (const card of props.column.cards) {
-          const progress = card.tasks.filter(t => t.completed).length / card.tasks.length;
-          if (progress > 0.5) {
-            shouldLock = true;
-            break;
-          }
-        }
-        emit('update:isFirstColumnFull', shouldLock);
-      }
-    };
+    const isFirstColumn = computed(() => props.column.id === 'todo');
 
     const addCard = () => {
       const tasks = Array.from({ length: 3 }, (_, i) => {
@@ -89,7 +72,6 @@ export default {
       remainingSlots,
       canAddCard,
       isFirstColumn,
-      checkLockStatus,
       addCard,
     };
   },

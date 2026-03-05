@@ -8,7 +8,7 @@
         :key="task.id"
         :task="task"
         :is-locked="isLocked"
-        @toggle="onTaskToggle"
+        @update:completed="onTaskCompleted"
       />
     </ul>
     <p>Прогресс: {{ progress }}%</p>
@@ -29,7 +29,6 @@ export default {
     card: Object,
     state: Object,
     isLocked: Boolean,
-    moveCard: Function,
   },
   emits: ['progress-changed'],
   setup(props, { emit }) {
@@ -39,22 +38,13 @@ export default {
       return total ? Math.round((done / total) * 100) : 0;
     });
 
-    const onTaskToggle = () => {
-      // Сначала обновляем прогресс
-      const currentProgress = progress.value;
-      
-      // Вызываем событие для обновления состояния блокировки первой колонки
+    const onTaskCompleted = () => {
       emit('progress-changed');
-
-      // Вызываем функцию перемещения, переданную из Board.vue
-      if (props.moveCard) {
-        props.moveCard(props.card, currentProgress);
-      }
     };
 
     return {
       progress,
-      onTaskToggle,
+      onTaskCompleted,
     };
   },
 };
