@@ -9,7 +9,8 @@
         :card="card"
         :state="state"
         :is-locked="isFirstColumn && isLockedForTransfer"
-        :is-in-first-column="isFirstColumn" 
+        :is-in-first-column="isFirstColumn"
+        :is-in-done-column="isDoneColumn"
         @progress-changed="$emit('progress-updated')"
       />
     </div>
@@ -64,6 +65,7 @@ export default {
     });
 
     const isFirstColumn = computed(() => props.column.id === 'todo');
+    const isDoneColumn = computed(() => props.column.id === 'done'); // Вычисляем, является ли столбец 'done'
 
     const addCard = () => {
       if (!newCardTitle.value.trim()) return;
@@ -92,6 +94,7 @@ export default {
       remainingSlots,
       canAddCard,
       isFirstColumn,
+      isDoneColumn, // Возвращаем вычисленное свойство
       addCard,
       newCardTitle,
     };

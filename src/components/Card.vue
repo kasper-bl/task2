@@ -7,6 +7,7 @@
         :key="task.id"
         :task="task"
         :is-locked="isLocked"
+        :is-disabled="isInDoneColumn"
         @update:completed="onTaskCompleted"
       />
     </ul>
@@ -41,6 +42,7 @@ export default {
     state: Object,
     isLocked: Boolean,
     isInFirstColumn: Boolean,
+    isInDoneColumn: Boolean, // Новый пропс
   },
   emits: ['progress-changed'],
   setup(props, { emit }) {
@@ -51,6 +53,7 @@ export default {
       const done = props.card.tasks.filter(t => t.completed).length;
       return total ? Math.round((done / total) * 100) : 0;
     });
+
     const canAddTask = computed(() => {
       return props.isInFirstColumn && props.card.tasks.length < 5;
     });
@@ -93,7 +96,8 @@ export default {
   border: 1px solid #ddd;
   border-radius: 4px;
   padding: 10px;
-  margin-bottom: 10px white;
+  margin-bottom: 10px;
+  background-color: white;
 }
 .locked {
   background-color: #f0f0f0;

@@ -35,18 +35,45 @@ export default {
 
     const saved = localStorage.getItem('boardState');
     if (saved) {
-      const parsed = JSON.parse(saved);
-      state.columns[0].cards = parsed.columns[0].cards || [];
-      state.columns[1].cards = parsed.columns[1].cards || [];
-      state.columns[2].cards = parsed.columns[2].cards || [];
-      state.nextId = parsed.nextId || 1;
+      try {
+        const parsed = JSON.parse(saved);
+
+        const restoreCards = (cardsData) => {
+          return (cardsData || []).map(card => reactive({
+            id: card.id,
+            title: card.title,
+            tasks: (card.tasks || []).map(task => reactive({
+              id: task.id,
+              text: task.text,
+              completed: task.completed,
+            })),
+            completedAt: card.completedAt,
+          }));
+        };
+
+        state.columns[0].cards = restoreCards(parsed.columns[0]?.cards);
+        state.columns[1].cards = restoreCards(parsed.columns[1]?.cards);
+        state.columns[2].cards = restoreCards(parsed.columns[2]?.cards);
+        state.nextId = parsed.nextId || 1;
+      } catch (e) {
+        console.warn('Ошибка при загрузке состояния из localStorage:', e);
+      }
     }
 
     watchEffect(() => {
       const toSave = {
         columns: state.columns.map(col => ({
           id: col.id,
-          cards: col.cards.map(c => ({ ...c })),
+          cards: col.cards.map(card => ({
+            id: card.id,
+            title: card.title,
+            tasks: card.tasks.map(t => ({
+              id: t.id,
+              text: t.text,
+              completed: t.completed,
+            })),
+            completedAt: card.completedAt,
+          })),
         })),
         nextId: state.nextId,
       };
@@ -71,6 +98,7 @@ export default {
     };
 
     const moveCardsAutomatically = () => {
+      let moved = false;
       const allCards = [];
       for (const col of state.columns) {
         for (const card of col.cards) {
@@ -93,6 +121,7 @@ export default {
           if (targetCol && targetCol.cards.length < targetCol.maxCards) {
             sourceCol.cards.splice(idx, 1);
             targetCol.cards.push(card);
+            moved = true;
           }
         } else if (fromColumn === 'in-progress' && progress === 100) {
           const targetCol = state.columns.find(c => c.id === 'done');
@@ -100,27 +129,35 @@ export default {
             sourceCol.cards.splice(idx, 1);
             targetCol.cards.push(card);
             card.completedAt = new Date().toLocaleString();
+            moved = true;
           }
         }
       }
 
       updateFirstColumnLock();
+
+      if (moved) {
+        setTimeout(() => moveCardsAutomatically(), 0);
+      }
     };
 
     watchEffect(() => {
-      state.columns.forEach(col =>
-        col.cards.forEach(card =>
-          card.tasks.forEach(() => {})
-        )
-      );
+      state.columns.forEach(col => {
+        col.cards.forEach(card => {
+          card.tasks.forEach(task => task.completed);
+        });
+      });
       moveCardsAutomatically();
     });
 
     setTimeout(moveCardsAutomatically, 0);
 
+    const handleProgressUpdate = () => {};
+
     return {
       state,
       isFirstColumnFull,
+      handleProgressUpdate,
     };
   },
 };

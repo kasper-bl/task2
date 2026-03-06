@@ -8,13 +8,21 @@
       @blur="saveEdit"
       @keyup.enter="saveEdit"
       ref="inputRef"
+      :disabled="isDisabled"
     />
-    <button @click="toggleEdit" style="margin-left: 5px;">{{ isEditing ? 'Сохранить' : 'Редакт.' }}</button>
+    
+    <button 
+      @click="toggleEdit" 
+      style="margin-left: 5px;"
+      :disabled="isDisabled" 
+    >
+      {{ isEditing ? 'Сохранить' : 'Редакт.' }}
+    </button>
     <label style="margin-left: 5px;">
       <input
         type="checkbox"
         :checked="task.completed"
-        :disabled="isLocked || isEditing"
+        :disabled="isDisabled || isLocked || isEditing"
         @change="toggleTask"
       />
       Выполнено
@@ -30,6 +38,7 @@ export default {
   props: {
     task: Object,
     isLocked: Boolean,
+    isDisabled: Boolean, 
   },
   emits: ['update:completed'],
   setup(props) {
@@ -38,6 +47,10 @@ export default {
     const inputRef = ref(null);
 
     const toggleEdit = async () => {
+      if (props.isDisabled) {
+        return;
+      }
+
       if (isEditing.value) {
         saveEdit();
       } else {
@@ -58,7 +71,7 @@ export default {
     };
 
     const toggleTask = (e) => {
-      if (!props.isLocked && !isEditing.value) {
+      if (!props.isDisabled && !props.isLocked && !isEditing.value) {
         const newValue = e.target.checked;
         props.task.completed = newValue;
         props.$emit('update:completed', { taskId: props.task.id, completed: newValue });
