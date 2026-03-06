@@ -10,8 +10,7 @@
         @update:completed="onTaskCompleted"
       />
     </ul>
-    <!-- Форма для добавления новой задачи -->
-    <form @submit.prevent="addTask" class="add-task-form">
+    <form v-if="isInFirstColumn" @submit.prevent="addTask" class="add-task-form">
       <input
         v-model="newTaskText"
         type="text"
@@ -38,6 +37,7 @@ export default {
     card: Object,
     state: Object,
     isLocked: Boolean,
+    isInFirstColumn: Boolean, // Новый пропс, передающийся из Column.vue
   },
   emits: ['progress-changed'],
   setup(props, { emit }) {

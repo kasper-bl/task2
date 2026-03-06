@@ -9,6 +9,7 @@
         :card="card"
         :state="state"
         :is-locked="isFirstColumn && isLockedForTransfer"
+        :is-in-first-column="isFirstColumn" 
         @progress-changed="$emit('progress-updated')"
       />
     </div>
