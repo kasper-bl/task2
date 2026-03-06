@@ -1,7 +1,19 @@
 <template>
   <div class="column">
-    <h2>{{ column.title }}</h2>
+    <div class="column-header">
+      <h2>{{ column.title }}</h2>
+      <button 
+        v-if="isFirstColumn && canAddCard" 
+        @click="openModal"
+        :disabled="isLockedForTransfer"
+        class="add-card-btn"
+      >
+        +
+      </button>
+    </div>
+    
     <p v-if="column.maxCards !== Infinity">Осталось мест: {{ remainingSlots }}</p>
+    
     <div class="card-list">
       <Card
         v-for="card in column.cards"
@@ -14,31 +26,29 @@
         @progress-changed="$emit('progress-updated')"
       />
     </div>
-    <form 
-      @submit.prevent="addCard" 
-      v-if="isFirstColumn && canAddCard" 
-      class="add-card-form"
-    >
-      <input
-        v-model="newCardTitle"
-        type="text"
-        placeholder="Название карточки"
-        required
-      />
-      <button type="submit">Добавить карточку</button>
-    </form>
-    <p v-else-if="isFirstColumn && isLockedForTransfer">(Заблокировано)</p>
+    
+    <p v-if="isFirstColumn && isLockedForTransfer" class="lock-message">
+      (Заблокировано)
+    </p>
+    
+    <Modal 
+      :visible="showModal" 
+      @create-card="handleCreateCard" 
+      @close="closeModal" 
+    />
   </div>
 </template>
 
 <script>
-import { computed, reactive, ref } from 'vue';
+import { computed, ref } from 'vue';
 import Card from './Card.vue';
+import Modal from './Modal.vue';
 
 export default {
   name: 'Column',
   components: {
     Card,
+    Modal,
   },
   props: {
     column: Object,
@@ -47,7 +57,7 @@ export default {
   },
   emits: ['progress-updated'],
   setup(props) {
-    const newCardTitle = ref('');
+    const showModal = ref(false);
 
     const isLockedForTransfer = computed(() => {
       if (props.column.id !== 'todo') return false;
@@ -65,28 +75,37 @@ export default {
     });
 
     const isFirstColumn = computed(() => props.column.id === 'todo');
-    const isDoneColumn = computed(() => props.column.id === 'done'); // Вычисляем, является ли столбец 'done'
+    const isDoneColumn = computed(() => props.column.id === 'done');
 
-    const addCard = () => {
-      if (!newCardTitle.value.trim()) return;
+    const openModal = () => {
+      if (canAddCard.value && !isLockedForTransfer.value) {
+        showModal.value = true;
+      }
+    };
 
-      const tasks = Array.from({ length: 3 }, (_, i) => {
-        return reactive({
-          id: Date.now() + i,
-          text: `Задача ${i + 1}`,
-          completed: false,
-        });
-      });
+    const closeModal = () => {
+      showModal.value = false;
+    };
 
-      const newCard = reactive({
+    const handleCreateCard = (cardData) => {
+      if (remainingSlots.value <= 0) {
+        alert('Достигнут лимит карточек в этом столбце');
+        return;
+      }
+
+      const newCard = {
         id: props.state.nextId++,
-        title: newCardTitle.value.trim(),
-        tasks,
-        completedAt: null,
-      });
+        title: cardData.title,
+        tasks: cardData.tasks.map((task, index) => ({
+          id: Date.now() + index,
+          text: task.text,
+          completed: task.completed
+        })),
+        completedAt: null
+      };
 
       props.column.cards.push(newCard);
-      newCardTitle.value = ''; 
+      closeModal();
     };
 
     return {
@@ -94,9 +113,11 @@ export default {
       remainingSlots,
       canAddCard,
       isFirstColumn,
-      isDoneColumn, // Возвращаем вычисленное свойство
-      addCard,
-      newCardTitle,
+      isDoneColumn,
+      showModal,
+      openModal,
+      closeModal,
+      handleCreateCard,
     };
   },
 };
@@ -110,15 +131,46 @@ export default {
   width: 300px;
   background-color: #f9f9f9;
 }
+
+.column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.add-card-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background-color: #535353;
+  color: white;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-card-btn:hover:not(:disabled) {
+  background-color: #6d6d6d;
+}
+
+.add-card-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
 .card-list {
   min-height: 50px;
   margin-bottom: 10px;
 }
-.add-card-form {
-  display: flex;
-  gap: 5px;
-}
-.add-card-form input {
-  flex: 1;
+
+.lock-message {
+  color: #666;
+  font-size: 0.9em;
+  margin-top: 5px;
+  margin-bottom: 0;
 }
 </style>
