@@ -12,7 +12,6 @@
         @progress-changed="$emit('progress-updated')"
       />
     </div>
-    <!-- Форма добавления карточки только в первом столбце -->
     <form 
       @submit.prevent="addCard" 
       v-if="isFirstColumn && canAddCard" 

@@ -1,4 +1,3 @@
-<!-- Board.vue -->
 <template>
   <div class="board">
     <h1>Todo</h1>
@@ -86,7 +85,6 @@ export default {
 
         const sourceCol = state.columns.find(c => c.id === fromColumn);
         if (!sourceCol) continue;
-        
         const idx = sourceCol.cards.indexOf(card);
         if (idx === -1) continue;
 
@@ -100,8 +98,8 @@ export default {
           const targetCol = state.columns.find(c => c.id === 'done');
           if (targetCol) {
             sourceCol.cards.splice(idx, 1);
+            targetCol.cards.push(card);
             card.completedAt = new Date().toLocaleString();
-           (card);
           }
         }
       }
